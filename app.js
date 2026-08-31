@@ -144,9 +144,19 @@ function handleClick(event) {
   const action = button.dataset.action;
   const tab = button.dataset.tab;
   const quickGoal = button.dataset.quickGoal;
+  const deleteGoalId = button.dataset.deleteGoal;
+  const editGoalId = button.dataset.editGoal;
+  const updateGoalId = button.dataset.updateGoal;
+  const deleteTaskId = button.dataset.deleteTask;
+  const editTaskId = button.dataset.editTask;
 
   if (tab) setTab(tab);
   if (quickGoal) openLog(quickGoal);
+  if (deleteGoalId) deleteGoal(deleteGoalId);
+  if (editGoalId) editGoal(editGoalId);
+  if (updateGoalId) updateGoalValue(updateGoalId);
+  if (deleteTaskId) deleteTask(deleteTaskId);
+  if (editTaskId) editTask(editTaskId);
 
   const actions = {
     "start-setup": startSetup,
@@ -162,7 +172,8 @@ function handleClick(event) {
     "save-big3": saveBig3,
     "send-encouragement": sendEncouragement,
     "add-piggy": addPiggy,
-    "reset-save": resetSave
+    "reset-save": resetSave,
+    "close-result": closeResult
   };
 
   if (actions[action]) actions[action]();
@@ -430,7 +441,8 @@ function createDailyQuests(goals) {
     id: createId(),
     text: `Complete one ${goal.category.toLowerCase()} action`,
     goalId: goal.id,
-    done: false
+    done: false,
+    rewarded: false
   }));
 }
 
@@ -439,7 +451,8 @@ function createWeeklyGoals(goals) {
     id: createId(),
     text: `Make meaningful progress on ${goal.name}`,
     goalId: goal.id,
-    done: false
+    done: false,
+    rewarded: false
   }));
 }
 
@@ -559,13 +572,17 @@ function renderJournal(user) {
   }
 
   list.innerHTML = [...user.tasks].reverse().map((task) => `
-    <article class="entry-card">
-      <p class="meta-line">${formatDateTime(task.timestamp)}</p>
-      <p class="entry-title">${escapeHtml(task.title)}</p>
-      <p class="meta-line">${escapeHtml(task.category)} · ${efforts[task.effort].label} · +${task.xp} XP</p>
-      ${task.note ? `<p class="muted">${escapeHtml(task.note)}</p>` : ""}
-    </article>
-  `).join("");
+        <article class="entry-card">
+          <p class="meta-line">${formatDateTime(task.timestamp)}</p>
+          <p class="entry-title">${escapeHtml(task.title)}</p>
+          <p class="meta-line">${escapeHtml(task.category)} · ${efforts[task.effort].label} · +${task.xp} XP</p>
+          ${task.note ? `<p class="muted">${escapeHtml(task.note)}</p>` : ""}
+          <div class="card-actions">
+            <button type="button" class="mini-action" data-edit-task="${task.id}">Edit</button>
+            <button type="button" class="mini-action danger-mini" data-delete-task="${task.id}">Delete</button>
+          </div>
+        </article>
+      `).join("");
 }
 
 function renderGoals(user) {
@@ -583,6 +600,15 @@ function renderGoals(user) {
           <div class="progress-line">
             <div class="xp-meta"><span>${progress}%</span><span>${goal.currentValue || 0}${goal.targetValue ? ` / ${goal.targetValue}` : ""}</span></div>
             <div class="bar"><span style="width:${progress}%"></span></div>
+          </div>
+          <div class="goal-edit-row">
+            <label>
+              Current
+              <input type="number" min="0" step="1" value="${goal.currentValue || 0}" data-goal-value="${goal.id}">
+            </label>
+            <button type="button" class="mini-action" data-update-goal="${goal.id}">Update</button>
+            <button type="button" class="mini-action" data-edit-goal="${goal.id}">Edit</button>
+            <button type="button" class="mini-action danger-mini" data-delete-goal="${goal.id}">Delete</button>
           </div>
           ${renderMilestones(goal)}
         </article>
@@ -613,11 +639,35 @@ function renderMilestones(goal) {
 }
 
 function renderQuests(user) {
+  const dailyDone = user.dailyQuests.filter((quest) => quest.done).length;
+  const weeklyDone = user.weeklyGoals.filter((quest) => quest.done).length;
+  const big3Done = user.big3.filter(Boolean).length;
+  const today = new Date().toISOString().slice(0, 10);
+  const big3Claimed = user.big3RewardedDate === today;
+  $("#quest-summary").innerHTML = `
+    <article class="quest-summary-card">
+      <span>Today</span>
+      <strong>${dailyDone}/${user.dailyQuests.length || 0}</strong>
+      <p>daily quests</p>
+    </article>
+    <article class="quest-summary-card">
+      <span>Big 3</span>
+      <strong>${big3Done}/3</strong>
+      <p>${big3Claimed ? "reward claimed" : "fill all to claim"}</p>
+    </article>
+    <article class="quest-summary-card">
+      <span>Week</span>
+      <strong>${weeklyDone}/${user.weeklyGoals.length || 0}</strong>
+      <p>weekly progress</p>
+    </article>
+  `;
+
   $("#daily-quests").innerHTML = user.dailyQuests.map((quest) => `
-    <article class="quest-card ${quest.done ? "is-done" : ""}">
+    <article class="quest-card ${quest.done ? "is-done" : ""} ${quest.rewarded ? "is-rewarded" : ""}">
       <label class="quest-row">
         <input type="checkbox" ${quest.done ? "checked" : ""} data-quest-id="${quest.id}">
-        ${escapeHtml(quest.text)}
+        <span>${escapeHtml(quest.text)}</span>
+        <small>${quest.rewarded ? "Claimed" : "+10 XP"}</small>
       </label>
     </article>
   `).join("") || `<div class="empty-state">Add goals to generate quests.</div>`;
@@ -627,10 +677,11 @@ function renderQuests(user) {
   `).join("");
 
   $("#weekly-list").innerHTML = user.weeklyGoals.map((quest) => `
-    <article class="quest-card ${quest.done ? "is-done" : ""}">
+    <article class="quest-card ${quest.done ? "is-done" : ""} ${quest.rewarded ? "is-rewarded" : ""}">
       <label class="quest-row">
         <input type="checkbox" ${quest.done ? "checked" : ""} data-weekly-id="${quest.id}">
-        ${escapeHtml(quest.text)}
+        <span>${escapeHtml(quest.text)}</span>
+        <small>${quest.rewarded ? "Claimed" : "+20 XP"}</small>
       </label>
     </article>
   `).join("") || `<div class="empty-state">Weekly goals appear after setup.</div>`;
@@ -687,6 +738,11 @@ function submitLog(event) {
   const effort = efforts[selectedEffort];
   const previousLevel = calculateLevel(user.xp).level;
   const previousUnlocks = new Set(getUnlockedBuildings(user).map((building) => building.id));
+  const previousGoalValue = goal.currentValue || 0;
+  const previousStreak = user.streak;
+  const resourceKey = resourceForCategory(goal.category);
+  const previousResource = user.resources[resourceKey];
+  const previousXp = user.xp;
   const task = {
     id: createId(),
     timestamp: new Date().toISOString(),
@@ -710,6 +766,22 @@ function submitLog(event) {
 
   const nextLevel = calculateLevel(user.xp).level;
   const newUnlocks = getUnlockedBuildings(user).filter((building) => !previousUnlocks.has(building.id));
+  const summary = {
+    xp: effort.xp,
+    bonusXp: user.xp - previousXp - effort.xp,
+    totalXp: user.xp,
+    goalName: goal.name,
+    goalBefore: previousGoalValue,
+    goalAfter: goal.currentValue || 0,
+    goalProgress: calculateGoalProgress(goal),
+    resourceName: resourceKey,
+    resourceGain: user.resources[resourceKey] - previousResource,
+    streakBefore: previousStreak,
+    streakAfter: user.streak,
+    levelBefore: previousLevel,
+    levelAfter: nextLevel,
+    unlock: newUnlocks[0] || null
+  };
   if (nextLevel > previousLevel) {
     user.rewardPoints += 25;
     showToast(`Level up! You reached Level ${nextLevel}.`);
@@ -723,6 +795,7 @@ function submitLog(event) {
   saveState();
   closeLog();
   renderApp();
+  showResult(summary);
 }
 
 function addResource(user, category, xp) {
@@ -737,9 +810,10 @@ function resourceForCategory(category) {
 }
 
 function completeMatchingQuest(user, goalId) {
-  const quest = user.dailyQuests.find((item) => item.goalId === goalId && !item.done);
+  const quest = user.dailyQuests.find((item) => item.goalId === goalId && !item.done && !item.rewarded);
   if (quest) {
     quest.done = true;
+    quest.rewarded = true;
     user.xp += 10;
   }
 }
@@ -760,9 +834,10 @@ function toggleMilestone(goalId, milestoneId, done) {
   const milestone = goal?.milestones.find((item) => item.id === milestoneId);
   if (!milestone) return;
   milestone.done = done;
-  if (done) {
+  if (done && !milestone.rewarded) {
     user.xp += 15;
     user.rewardPoints += 10;
+    milestone.rewarded = true;
     showToast("+15 XP for a milestone.");
   }
   saveState();
@@ -774,7 +849,10 @@ function toggleQuest(questId, done) {
   const quest = user.dailyQuests.find((item) => item.id === questId);
   if (!quest) return;
   quest.done = done;
-  if (done) user.xp += 10;
+  if (done && !quest.rewarded) {
+    quest.rewarded = true;
+    user.xp += 10;
+  }
   saveState();
   renderApp();
 }
@@ -784,7 +862,8 @@ function toggleWeekly(questId, done) {
   const quest = user.weeklyGoals.find((item) => item.id === questId);
   if (!quest) return;
   quest.done = done;
-  if (done) {
+  if (done && !quest.rewarded) {
+    quest.rewarded = true;
     user.xp += 20;
     user.rewardPoints += 10;
   }
@@ -803,9 +882,11 @@ function refreshQuests() {
 function saveBig3() {
   const user = currentUser();
   user.big3 = $$("[data-big3]").map((input) => input.value.trim());
-  if (user.big3.every(Boolean)) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (user.big3.every(Boolean) && user.big3RewardedDate !== today) {
     user.xp += 25;
     user.rewardPoints += 10;
+    user.big3RewardedDate = today;
     showToast("Big 3 saved. +25 XP for the full set.");
   } else {
     showToast("Big 3 saved.");
@@ -828,6 +909,112 @@ function addPiggy() {
   saveState();
   renderApp();
   showToast("Accountability noted gently.");
+}
+
+function updateGoalValue(goalId) {
+  const user = currentUser();
+  const goal = user.goals.find((item) => item.id === goalId);
+  const input = $(`[data-goal-value="${goalId}"]`);
+  if (!goal || !input) return;
+  const value = Math.max(0, Number(input.value || 0));
+  if (goal.targetValue && value > goal.targetValue) {
+    showToast("Current value cannot be higher than the target.");
+    input.value = goal.currentValue || 0;
+    return;
+  }
+  goal.currentValue = value;
+  saveState();
+  renderApp();
+  showToast("Goal progress updated.");
+}
+
+function editGoal(goalId) {
+  const user = currentUser();
+  const goal = user.goals.find((item) => item.id === goalId);
+  if (!goal) return;
+
+  const name = window.prompt("Goal name", goal.name);
+  if (name === null) return;
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    showToast("Goal name cannot be empty.");
+    return;
+  }
+
+  const category = window.prompt("Category", goal.category);
+  if (category === null) return;
+  const trimmedCategory = category.trim();
+  if (!trimmedCategory) {
+    showToast("Category cannot be empty.");
+    return;
+  }
+
+  const why = window.prompt("Why does this matter? Optional.", goal.why || "");
+  if (why === null) return;
+
+  goal.name = trimmedName;
+  goal.category = trimmedCategory;
+  goal.why = why.trim();
+  user.dailyQuests.forEach((quest) => {
+    if (quest.goalId === goal.id) quest.text = `Complete one ${goal.category.toLowerCase()} action`;
+  });
+  user.weeklyGoals.forEach((quest) => {
+    if (quest.goalId === goal.id) quest.text = `Make meaningful progress on ${goal.name}`;
+  });
+  saveState();
+  renderApp();
+  showToast("Goal details updated.");
+}
+
+function deleteGoal(goalId) {
+  const user = currentUser();
+  const goal = user.goals.find((item) => item.id === goalId);
+  if (!goal) return;
+  const linkedTasks = user.tasks.filter((task) => task.goalId === goalId).length;
+  const message = linkedTasks
+    ? `Delete "${goal.name}"? ${linkedTasks} journal entr${linkedTasks === 1 ? "y" : "ies"} will stay in the journal.`
+    : `Delete "${goal.name}"?`;
+  if (!window.confirm(message)) return;
+  user.goals = user.goals.filter((item) => item.id !== goalId);
+  user.dailyQuests = user.dailyQuests.filter((quest) => quest.goalId !== goalId);
+  user.weeklyGoals = user.weeklyGoals.filter((quest) => quest.goalId !== goalId);
+  saveState();
+  renderApp();
+  showToast("Goal deleted.");
+}
+
+function editTask(taskId) {
+  const user = currentUser();
+  const task = user.tasks.find((item) => item.id === taskId);
+  if (!task) return;
+
+  const title = window.prompt("Journal entry title", task.title);
+  if (title === null) return;
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) {
+    showToast("Journal title cannot be empty.");
+    return;
+  }
+
+  const note = window.prompt("Journal note. Optional.", task.note || "");
+  if (note === null) return;
+
+  task.title = trimmedTitle;
+  task.note = note.trim();
+  saveState();
+  renderApp();
+  showToast("Journal entry updated.");
+}
+
+function deleteTask(taskId) {
+  const user = currentUser();
+  const task = user.tasks.find((item) => item.id === taskId);
+  if (!task) return;
+  if (!window.confirm("Delete this journal entry? XP already earned will stay.")) return;
+  user.tasks = user.tasks.filter((item) => item.id !== taskId);
+  saveState();
+  renderApp();
+  showToast("Journal entry deleted.");
 }
 
 function resetSave() {
@@ -936,6 +1123,43 @@ function showUnlockBanner(building) {
   showUnlockBanner.timer = setTimeout(() => banner.classList.remove("is-visible"), 3200);
 }
 
+function showResult(summary) {
+  $("#result-title").textContent = summary.levelAfter > summary.levelBefore
+    ? `Level ${summary.levelAfter} reached.`
+    : summary.unlock
+      ? "New area opened."
+      : "Progress saved.";
+  $("#result-xp").textContent = `+${summary.xp} XP`;
+  $("#result-subtitle").textContent = summary.unlock
+    ? `${summary.unlock.name} joined your map.`
+    : `Season total: ${summary.totalXp} XP`;
+  $("#result-stats").innerHTML = [
+    summary.bonusXp > 0
+      ? { label: "Quest bonus", value: `+${summary.bonusXp} XP`, detail: "daily quest completed" }
+      : null,
+    { label: "Goal", value: `${summary.goalName} +${summary.goalAfter - summary.goalBefore}`, detail: `${summary.goalProgress}% complete` },
+    { label: "Resource", value: `+${summary.resourceGain} ${capitalize(summary.resourceName)}`, detail: "earned from this action" },
+    { label: "Streak", value: `${summary.streakAfter} day${summary.streakAfter === 1 ? "" : "s"}`, detail: summary.streakAfter > summary.streakBefore ? "streak updated" : "already counted today" },
+    summary.levelAfter > summary.levelBefore
+      ? { label: "Level", value: `Level ${summary.levelAfter}`, detail: "reward points added" }
+      : null,
+    summary.unlock
+      ? { label: "Unlock", value: summary.unlock.name, detail: "new map site active" }
+      : null
+  ].filter(Boolean).map((item) => `
+    <article class="result-stat">
+      <span>${escapeHtml(item.label)}</span>
+      <strong>${escapeHtml(item.value)}</strong>
+      <p>${escapeHtml(item.detail)}</p>
+    </article>
+  `).join("");
+  $("#result-dialog").showModal();
+}
+
+function closeResult() {
+  $("#result-dialog").close();
+}
+
 function formatDate(value) {
   if (!value) return "No deadline";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(`${value}T00:00:00`));
@@ -962,6 +1186,10 @@ function escapeHtml(value) {
 
 function escapeAttribute(value) {
   return escapeHtml(value).replaceAll("`", "&#096;");
+}
+
+function capitalize(value) {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
 function createId() {

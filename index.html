@@ -196,6 +196,7 @@
               </div>
               <button class="primary-action" data-action="open-log">Log Progress</button>
             </div>
+            <p class="map-hint">Drag map on small screens</p>
             <div id="kingdom-grid" class="kingdom-grid" aria-live="polite"></div>
             <div id="quick-actions" class="quick-actions"></div>
           </section>
@@ -231,6 +232,7 @@
               </div>
               <button class="secondary-action" data-action="refresh-quests">Refresh</button>
             </div>
+            <div id="quest-summary" class="quest-summary"></div>
             <div id="daily-quests" class="quest-list"></div>
             <div class="big3-panel">
               <h3 class="compact-title">Today's Big 3</h3>
@@ -318,6 +320,24 @@
         </label>
         <button class="primary-action" type="submit">Log It</button>
       </form>
+    </dialog>
+
+    <dialog id="result-dialog" class="modal result-modal">
+      <div class="result-panel">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">Log complete</p>
+            <h3 id="result-title">Progress saved.</h3>
+          </div>
+          <button type="button" class="icon-button" data-action="close-result" aria-label="Close">x</button>
+        </div>
+        <div class="result-hero">
+          <span id="result-xp">+0 XP</span>
+          <p id="result-subtitle">The kingdom noticed.</p>
+        </div>
+        <div id="result-stats" class="result-stats"></div>
+        <button class="primary-action" type="button" data-action="close-result">Back To Kingdom</button>
+      </div>
     </dialog>
 
     <script src="app.js"></script>

@@ -9,6 +9,7 @@
   <body>
     <div class="snow" aria-hidden="true"></div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="unlock-banner" class="unlock-banner" role="status" aria-live="polite"></div>
 
     <main class="app-shell">
       <section id="landing-screen" class="screen landing-screen is-active" aria-labelledby="landing-title">
@@ -276,6 +277,14 @@
                   <button class="secondary-action" data-action="add-piggy">Add</button>
                 </div>
               </article>
+            </div>
+            <div class="danger-zone">
+              <div>
+                <p class="eyebrow">Testing</p>
+                <h3 class="compact-title">Reset local save</h3>
+                <p class="muted">Clears only this browser's Kaapisoda data so onboarding can be tested again.</p>
+              </div>
+              <button class="secondary-action danger-action" data-action="reset-save">Reset Save</button>
             </div>
           </section>
         </div>

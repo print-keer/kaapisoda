@@ -76,6 +76,23 @@ const categoryBuildings = {
   Other: { id: "custom-workshop", name: "Open Workshop", xp: 700 }
 };
 
+const mapSites = [
+  { x: 14, y: 60 },
+  { x: 26, y: 45 },
+  { x: 39, y: 58 },
+  { x: 53, y: 41 },
+  { x: 66, y: 56 },
+  { x: 76, y: 35 },
+  { x: 86, y: 50 },
+  { x: 74, y: 68 },
+  { x: 49, y: 72 },
+  { x: 28, y: 27 },
+  { x: 88, y: 25 },
+  { x: 12, y: 31 },
+  { x: 61, y: 22 },
+  { x: 39, y: 20 }
+];
+
 const encouragements = [
   "KEEP BUILDING.",
   "ONE STEP COUNTS.",
@@ -144,7 +161,8 @@ function handleClick(event) {
     "refresh-quests": refreshQuests,
     "save-big3": saveBig3,
     "send-encouragement": sendEncouragement,
-    "add-piggy": addPiggy
+    "add-piggy": addPiggy,
+    "reset-save": resetSave
   };
 
   if (actions[action]) actions[action]();
@@ -477,16 +495,54 @@ function renderHeader(user) {
 
 function renderKingdom(user) {
   const buildings = getBuildingsForUser(user);
-  $("#kingdom-grid").innerHTML = buildings.map((building) => {
+  const unlockedCount = getUnlockedBuildings(user).length;
+  const nextUnlock = buildings
+    .filter((building) => user.xp < building.xp)
+    .sort((a, b) => a.xp - b.xp)[0];
+  const terrain = renderTerrainCells(user.xp);
+  const sites = buildings.map((building, index) => {
     const unlocked = user.xp >= building.xp;
+    const isNext = nextUnlock?.id === building.id;
+    const site = mapSites[index % mapSites.length];
+    const label = unlocked
+      ? `<p class="building-name">${escapeHtml(building.name)}</p>`
+      : isNext
+        ? `<p class="building-need">Next · ${building.xp} XP</p>`
+        : "";
     return `
-      <article class="building-tile ${unlocked ? "is-unlocked" : "is-locked"}">
+      <article class="map-site ${unlocked ? "is-unlocked" : "is-locked"} ${isNext ? "is-next" : ""}" style="--x:${site.x};--y:${site.y};--depth:${0.82 + site.y / 260};--delay:${index * 35}ms">
         ${renderPixelBuilding(building.id, unlocked)}
-        <p class="building-name">${unlocked ? escapeHtml(building.name) : "???"}</p>
-        <p class="building-need">${unlocked ? "Unlocked" : `${building.xp} XP`}</p>
+        <div class="map-label">${label}</div>
       </article>
     `;
   }).join("");
+
+  $("#kingdom-grid").innerHTML = `
+    <div class="pixel-map" style="--unlocked:${unlockedCount}">
+      <div class="pixel-sky" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="pixel-terrain" aria-hidden="true">${terrain}</div>
+      <div class="pixel-road" aria-hidden="true"></div>
+      <div class="map-sites">${sites}</div>
+      <div class="pixel-foreground" aria-hidden="true"></div>
+    </div>
+  `;
+}
+
+function renderTerrainCells(xp) {
+  const unlockedTier = Math.min(5, Math.floor(xp / 250));
+  const cells = Array.from({ length: 96 }, (_, index) => {
+    const row = Math.floor(index / 12);
+    const col = index % 12;
+    const nearPath = Math.abs(row - Math.round(3 + col * 0.28)) <= 0;
+    const fog = row + col > 12 + unlockedTier * 2;
+    const water = row === 7 && col < 3;
+    const forest = row < 6 && ((row + col) % 6 === 0 || (row * col) % 13 === 0);
+    const className = fog ? "fog" : water ? "water" : nearPath ? "path" : forest ? "forest" : "grass";
+    return `<span class="terrain-cell terrain-${className}"></span>`;
+  });
+  return cells.join("");
 }
 
 function renderQuickActions(user) {
@@ -630,6 +686,7 @@ function submitLog(event) {
 
   const effort = efforts[selectedEffort];
   const previousLevel = calculateLevel(user.xp).level;
+  const previousUnlocks = new Set(getUnlockedBuildings(user).map((building) => building.id));
   const task = {
     id: createId(),
     timestamp: new Date().toISOString(),
@@ -652,12 +709,16 @@ function submitLog(event) {
   user.level = calculateLevel(user.xp).level;
 
   const nextLevel = calculateLevel(user.xp).level;
+  const newUnlocks = getUnlockedBuildings(user).filter((building) => !previousUnlocks.has(building.id));
   if (nextLevel > previousLevel) {
     user.rewardPoints += 25;
     showToast(`Level up! You reached Level ${nextLevel}.`);
+  } else if (newUnlocks.length) {
+    showToast(`New area unlocked: ${newUnlocks[0].name}.`);
   } else {
     showToast(`+${effort.xp} XP. The kingdom noticed.`);
   }
+  if (newUnlocks.length) showUnlockBanner(newUnlocks[0]);
 
   saveState();
   closeLog();
@@ -769,6 +830,18 @@ function addPiggy() {
   showToast("Accountability noted gently.");
 }
 
+function resetSave() {
+  const confirmed = window.confirm("Reset all local Kaapisoda profiles in this browser?");
+  if (!confirmed) return;
+  state = { users: [], currentUserId: null };
+  localStorage.removeItem(STORAGE_KEY);
+  setupDraft = createSetupDraft();
+  setupPage = 0;
+  showScreen("landing");
+  renderPickers();
+  showToast("Local save reset.");
+}
+
 function getBuildingsForUser(user) {
   const categories = new Set(user.goals.map((goal) => goal.category));
   const personalized = [...categories].map((category) => categoryBuildings[category] || categoryBuildings.Other);
@@ -850,6 +923,17 @@ function showToast(message) {
   toast.classList.add("is-visible");
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => toast.classList.remove("is-visible"), 2600);
+}
+
+function showUnlockBanner(building) {
+  const banner = $("#unlock-banner");
+  banner.innerHTML = `
+    <span>NEW AREA UNLOCKED</span>
+    <strong>${escapeHtml(building.name)}</strong>
+  `;
+  banner.classList.add("is-visible");
+  clearTimeout(showUnlockBanner.timer);
+  showUnlockBanner.timer = setTimeout(() => banner.classList.remove("is-visible"), 3200);
 }
 
 function formatDate(value) {

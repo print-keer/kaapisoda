@@ -643,6 +643,15 @@ h3 {
   margin-top: 1rem;
 }
 
+.map-hint {
+  display: none;
+  margin: -0.4rem 0 0.65rem;
+  color: var(--pixel-dim);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
 .quick-actions .choice-button {
   min-height: 2.5rem;
 }
@@ -706,6 +715,43 @@ h3 {
   margin-top: 0.75rem;
 }
 
+.goal-edit-row,
+.card-actions {
+  display: flex;
+  align-items: end;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.goal-edit-row label {
+  width: min(9rem, 100%);
+  color: inherit;
+}
+
+.goal-edit-row input {
+  min-height: 2.35rem;
+  padding: 0.45rem 0.55rem;
+}
+
+.mini-action {
+  min-height: 2.35rem;
+  padding: 0.45rem 0.7rem;
+  border: 2px solid var(--pixel-ink);
+  color: var(--pixel-ink);
+  background: var(--pixel-cyan);
+  box-shadow: 3px 3px 0 rgba(16, 23, 15, 0.35);
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.danger-mini {
+  color: var(--pixel-light);
+  background: var(--pixel-danger);
+}
+
 .milestone-row,
 .quest-row {
   display: flex;
@@ -726,6 +772,54 @@ h3 {
 
 .quest-card.is-done {
   background: rgba(73, 107, 79, 0.18);
+}
+
+.quest-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.quest-summary-card {
+  padding: 0.85rem;
+  border: var(--pixel-unit) solid var(--pixel-ink);
+  color: var(--pixel-ink);
+  background: var(--pixel-panel-2);
+  box-shadow: 4px 4px 0 rgba(16, 23, 15, 0.28);
+}
+
+.quest-summary-card span,
+.quest-row small {
+  display: block;
+  color: var(--pixel-dim);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.quest-summary-card strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.quest-summary-card p {
+  margin: 0.25rem 0 0;
+  color: var(--pixel-dim);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.quest-row span {
+  flex: 1;
+}
+
+.quest-row small {
+  margin-left: auto;
+  padding: 0.18rem 0.28rem;
+  border: 2px solid currentColor;
 }
 
 .big3-list input {
@@ -763,6 +857,11 @@ h3 {
   gap: 0.9rem;
 }
 
+.result-panel {
+  display: grid;
+  gap: 1rem;
+}
+
 .modal-head {
   display: flex;
   justify-content: space-between;
@@ -779,6 +878,70 @@ h3 {
   padding: 0;
   color: var(--ink);
   background: rgba(28, 34, 41, 0.08);
+}
+
+.result-hero {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: var(--pixel-unit) solid var(--pixel-light);
+  color: var(--pixel-light);
+  background:
+    repeating-linear-gradient(90deg, rgba(185, 242, 58, 0.16) 0 8px, transparent 8px 16px),
+    var(--pixel-bg);
+  text-align: center;
+}
+
+.result-hero span {
+  color: var(--pixel-accent);
+  font-size: clamp(2.6rem, 12vw, 5.5rem);
+  font-weight: 950;
+  line-height: 0.9;
+  text-shadow:
+    4px 0 0 var(--pixel-shadow),
+    0 4px 0 var(--pixel-shadow);
+}
+
+.result-hero p {
+  margin: 0;
+  color: var(--pixel-light);
+  font-weight: 850;
+}
+
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.result-stat {
+  padding: 0.8rem;
+  border: var(--pixel-unit) solid var(--pixel-ink);
+  color: var(--pixel-ink);
+  background: var(--pixel-panel-2);
+  box-shadow: 4px 4px 0 rgba(16, 23, 15, 0.3);
+}
+
+.result-stat span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--pixel-dim);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.result-stat strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.result-stat p {
+  margin: 0.35rem 0 0;
+  color: var(--pixel-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .toast {
@@ -872,6 +1035,42 @@ h3 {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .topbar {
+    gap: 0.55rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .topbar h2 {
+    font-size: 2.2rem;
+  }
+
+  .hero-status {
+    gap: 0.7rem;
+    padding: 0.75rem;
+  }
+
+  .status-main {
+    align-items: center;
+  }
+
+  .avatar-orb {
+    width: 3.75rem;
+    height: 3.75rem;
+  }
+
+  .hero-status h3 {
+    font-size: 1.05rem;
+  }
+
+  .stat-row {
+    justify-content: stretch;
+  }
+
+  .stat-row span {
+    flex: 1;
+    text-align: center;
+  }
 }
 
 @media (max-width: 520px) {
@@ -892,6 +1091,46 @@ h3 {
 
   .kingdom-grid {
     grid-template-columns: 1fr;
+  }
+
+  .screen-head,
+  .setup-panel,
+  .tab-panel,
+  .hero-status {
+    padding: 0.75rem;
+  }
+
+  .screen-head h2 {
+    font-size: 2rem;
+  }
+
+  .section-title-row {
+    gap: 0.65rem;
+  }
+
+  .section-title-row h3 {
+    font-size: 1rem;
+    line-height: 1.15;
+  }
+
+  .primary-action,
+  .secondary-action,
+  .icon-text-button,
+  .tab-button,
+  .choice-button {
+    min-height: 2.55rem;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .modal {
+    width: calc(100% - 1rem);
+    max-height: calc(100dvh - 1rem);
+    overflow: auto;
+    padding: 0.75rem;
+  }
+
+  .result-hero {
+    padding: 0.8rem;
   }
 }
 
@@ -1151,6 +1390,16 @@ legend,
 .bank-card .muted,
 .challenge-card .muted {
   color: var(--pixel-dim);
+}
+
+.quest-card.is-done,
+.quest-card.is-rewarded {
+  background: #b7c986;
+}
+
+.quest-card.is-rewarded .quest-row small {
+  color: var(--pixel-ink);
+  background: var(--pixel-accent);
 }
 
 .hero-status {
@@ -1456,6 +1705,10 @@ legend,
   border-radius: 0;
   color: var(--pixel-light);
   background: var(--pixel-bg);
+}
+
+.result-modal {
+  max-width: 680px;
 }
 
 .pixel-badge {
@@ -1765,27 +2018,72 @@ legend,
 
 @media (max-width: 820px) {
   .pixel-map {
-    min-height: 38rem;
+    min-height: 34rem;
   }
 
   .map-site {
-    width: 6.25rem;
+    width: 5.9rem;
+  }
+
+  .map-hint {
+    display: block;
+  }
+
+  .pixel-building {
+    transform: scale(0.88);
+    transform-origin: center bottom;
   }
 }
 
 @media (max-width: 520px) {
   .kingdom-grid {
     overflow-x: auto;
+    padding: 0.45rem;
+    border-width: 3px;
+    scrollbar-color: var(--pixel-accent) var(--pixel-bg);
   }
 
   .pixel-map {
-    min-width: 43rem;
-    min-height: 34rem;
+    min-width: 39rem;
+    min-height: 30rem;
   }
 
   .danger-zone {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .result-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .quest-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .map-site {
+    width: 5.4rem;
+  }
+
+  .map-site .building-name,
+  .map-site .building-need {
+    font-size: 0.52rem;
+  }
+
+  .pixel-terrain {
+    left: 4%;
+    right: 4%;
+    bottom: 11%;
+  }
+
+  .player-switcher {
+    min-width: 0;
+  }
+
+  .xp-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 }
 

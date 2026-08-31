@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kaapisoda</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div class="snow" aria-hidden="true"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <main class="app-shell">
+      <section id="landing-screen" class="screen landing-screen is-active" aria-labelledby="landing-title">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">K</span>
+          <p class="eyebrow">Life OS // 122 days</p>
+          <h1 id="landing-title">Kaapisoda</h1>
+          <p class="tagline">Build the life you're becoming.</p>
+        </div>
+
+        <div class="landing-copy">
+          <p>You have 122 days. Choose what you're building. Every real-world action grows your world.</p>
+        </div>
+
+        <div class="landing-actions">
+          <button class="primary-action" data-action="start-setup">Start My Arc</button>
+          <button class="secondary-action" data-action="resume-game">I'm Already Playing</button>
+        </div>
+      </section>
+
+      <section id="setup-screen" class="screen setup-screen" aria-labelledby="setup-title">
+        <div class="screen-head">
+          <p class="eyebrow" id="setup-step">Step 1 of 3</p>
+          <h2 id="setup-title">What should we call you?</h2>
+        </div>
+
+        <form id="setup-form" class="setup-panel">
+          <div class="setup-page is-active" data-setup-page="identity">
+            <label>
+              Name
+              <input id="player-name" name="name" type="text" autocomplete="name" placeholder="Your name" required>
+            </label>
+
+            <label>
+              Pronouns <span class="optional">optional</span>
+              <input id="player-pronouns" name="pronouns" type="text" placeholder="she/her, they/them, he/him">
+            </label>
+
+            <label>
+              Kingdom name
+              <input id="kingdom-name" name="kingdomName" type="text" placeholder="Name your world" required>
+            </label>
+
+            <fieldset>
+              <legend>Avatar</legend>
+              <div id="avatar-picker" class="avatar-grid" role="radiogroup" aria-label="Choose avatar"></div>
+            </fieldset>
+          </div>
+
+          <div class="setup-page" data-setup-page="categories">
+            <p class="helper-text">Pick any number. These shape your kingdom, but your goals stay fully yours.</p>
+            <div id="category-picker" class="chip-grid"></div>
+            <label>
+              Custom category
+              <div class="inline-control">
+                <input id="custom-category" type="text" placeholder="Language, music, faith...">
+                <button type="button" class="icon-text-button" data-action="add-category">Add</button>
+              </div>
+            </label>
+          </div>
+
+          <div class="setup-page" data-setup-page="goals">
+            <div class="goal-builder">
+              <div class="goal-form-grid">
+                <label>
+                  Goal name
+                  <input id="goal-name" type="text" placeholder="Name something you want to build">
+                </label>
+                <label>
+                  Category
+                  <select id="goal-category"></select>
+                </label>
+                <label>
+                  Type
+                  <select id="goal-type">
+                    <option>Numeric</option>
+                    <option>Habit</option>
+                    <option>Project</option>
+                    <option>Milestone</option>
+                    <option>Skill</option>
+                    <option>Custom</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="label-with-help">
+                    Starting value
+                    <button class="help-button" type="button" aria-label="What is starting value?">
+                      i
+                      <span class="help-tooltip" role="tooltip">Where this goal begins. Use it only when progress can be counted, like pages, sessions, money, or completed units.</span>
+                    </button>
+                  </span>
+                  <input id="goal-start" type="number" min="0" step="1" placeholder="0">
+                </label>
+                <label>
+                  <span class="label-with-help">
+                    Target value
+                    <button class="help-button" type="button" aria-label="What is target value?">
+                      i
+                      <span class="help-tooltip" role="tooltip">The number you want to reach. Kaapisoda uses this to show percentage progress. Leave it empty for open-ended goals.</span>
+                    </button>
+                  </span>
+                  <input id="goal-target" type="number" min="0" step="1" placeholder="Optional">
+                </label>
+                <label>
+                  Deadline
+                  <input id="goal-deadline" type="date" value="2026-12-31">
+                </label>
+              </div>
+              <label>
+                Why does this matter? <span class="optional">optional</span>
+                <textarea id="goal-why" rows="2" placeholder="Optional reflection"></textarea>
+              </label>
+              <label>
+                Milestones <span class="optional">optional, one per line</span>
+                <textarea id="goal-milestones" rows="3" placeholder="Add checkpoints, one per line"></textarea>
+              </label>
+              <button type="button" class="secondary-action" data-action="add-goal">Add Goal</button>
+            </div>
+
+            <div>
+              <h3 class="compact-title">Your starting goals</h3>
+              <div id="setup-goals-list" class="compact-list empty-list">No goals yet.</div>
+            </div>
+          </div>
+
+          <div class="setup-actions">
+            <button type="button" class="secondary-action" data-action="setup-back">Back</button>
+            <button type="button" class="primary-action" data-action="setup-next">Next</button>
+            <button type="submit" class="primary-action hidden" data-action="finish-setup">Build My Kingdom</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="game-screen" class="screen game-screen" aria-labelledby="game-title">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="day-count">Day 1 / 122</p>
+            <h2 id="game-title">Kaapisoda</h2>
+          </div>
+          <div class="player-switcher">
+            <label for="profile-select">Profile</label>
+            <select id="profile-select"></select>
+          </div>
+        </header>
+
+        <section class="hero-status" aria-label="Current progress">
+          <div class="status-main">
+            <div class="avatar-orb" id="current-avatar" aria-hidden="true"></div>
+            <div>
+              <p id="current-player" class="current-player"></p>
+              <h3 id="current-kingdom"></h3>
+              <p id="level-title" class="muted"></p>
+            </div>
+          </div>
+          <div class="xp-wrap">
+            <div class="xp-meta">
+              <span id="level-label">Level 1</span>
+              <span id="xp-label">0 / 100 XP</span>
+            </div>
+            <div class="xp-track" aria-hidden="true"><span id="xp-fill"></span></div>
+          </div>
+          <div class="stat-row">
+            <span><strong id="streak-count">0</strong> streak</span>
+            <span><strong id="best-streak-count">0</strong> best</span>
+            <span><strong id="building-count">0</strong> buildings</span>
+          </div>
+        </section>
+
+        <nav class="tab-nav" aria-label="Kaapisoda screens">
+          <button class="tab-button is-active" data-tab="kingdom">Kingdom</button>
+          <button class="tab-button" data-tab="journal">Journal</button>
+          <button class="tab-button" data-tab="progress">Progress</button>
+          <button class="tab-button" data-tab="quests">Quests</button>
+          <button class="tab-button" data-tab="duo">Duo</button>
+          <button class="tab-button" data-tab="bank">Bank</button>
+        </nav>
+
+        <div class="tab-panels">
+          <section id="kingdom-tab" class="tab-panel is-active">
+            <div class="section-title-row">
+              <div>
+                <p class="eyebrow">Kingdom</p>
+                <h3>The world grows when you do.</h3>
+              </div>
+              <button class="primary-action" data-action="open-log">Log Progress</button>
+            </div>
+            <div id="kingdom-grid" class="kingdom-grid" aria-live="polite"></div>
+            <div id="quick-actions" class="quick-actions"></div>
+          </section>
+
+          <section id="journal-tab" class="tab-panel">
+            <div class="section-title-row">
+              <div>
+                <p class="eyebrow">Journal</p>
+                <h3>What you actually built.</h3>
+              </div>
+              <button class="primary-action" data-action="open-log">Log Progress</button>
+            </div>
+            <div id="journal-list" class="journal-list"></div>
+          </section>
+
+          <section id="progress-tab" class="tab-panel">
+            <div class="section-title-row">
+              <div>
+                <p class="eyebrow">Progress</p>
+                <h3>Goals and categories.</h3>
+              </div>
+              <button class="secondary-action" data-action="new-profile">New Profile</button>
+            </div>
+            <div id="goals-list" class="goals-list"></div>
+            <div id="category-progress" class="resource-grid"></div>
+          </section>
+
+          <section id="quests-tab" class="tab-panel">
+            <div class="section-title-row">
+              <div>
+                <p class="eyebrow">Quests</p>
+                <h3>Small wins for today.</h3>
+              </div>
+              <button class="secondary-action" data-action="refresh-quests">Refresh</button>
+            </div>
+            <div id="daily-quests" class="quest-list"></div>
+            <div class="big3-panel">
+              <h3 class="compact-title">Today's Big 3</h3>
+              <div id="big3-list" class="big3-list"></div>
+              <button class="secondary-action" data-action="save-big3">Save Big 3</button>
+            </div>
+            <div class="weekly-panel">
+              <h3 class="compact-title">This Week</h3>
+              <div id="weekly-list" class="quest-list"></div>
+            </div>
+          </section>
+
+          <section id="duo-tab" class="tab-panel">
+            <div class="section-title-row">
+              <div>
+                <p class="eyebrow">Duo</p>
+                <h3>Separate kingdoms. Same momentum.</h3>
+              </div>
+              <button class="secondary-action" data-action="send-encouragement">Send Encouragement</button>
+            </div>
+            <div id="duo-grid" class="duo-grid"></div>
+            <div id="duo-challenge" class="challenge-card"></div>
+          </section>
+
+          <section id="bank-tab" class="tab-panel">
+            <div class="section-title-row">
+              <div>
+                <p class="eyebrow">Bank</p>
+                <h3>Accountability without cruelty.</h3>
+              </div>
+            </div>
+            <div class="bank-grid">
+              <article class="bank-card">
+                <p class="eyebrow">Reward Points</p>
+                <strong id="reward-points">0</strong>
+                <p class="muted">Earned from level ups, milestones, and weekly wins.</p>
+              </article>
+              <article class="bank-card">
+                <p class="eyebrow">Piggy Bank</p>
+                <strong id="piggy-bank">0</strong>
+                <p class="muted">Manual accountability only. Rest days and emergencies are not failures.</p>
+                <div class="inline-control">
+                  <input id="piggy-amount" type="number" min="1" step="1" placeholder="20">
+                  <button class="secondary-action" data-action="add-piggy">Add</button>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="log-dialog" class="modal">
+      <form id="log-form" method="dialog">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">Progress log</p>
+            <h3>What did you do?</h3>
+          </div>
+          <button type="button" class="icon-button" data-action="close-log" aria-label="Close">x</button>
+        </div>
+        <label>
+          Action
+          <input id="task-title" type="text" placeholder="Worked on literature review for 90 minutes" required>
+        </label>
+        <label>
+          Goal
+          <select id="task-goal" required></select>
+        </label>
+        <fieldset>
+          <legend>Effort</legend>
+          <div id="effort-picker" class="effort-grid"></div>
+        </fieldset>
+        <label>
+          Note <span class="optional">optional</span>
+          <textarea id="task-note" rows="3" placeholder="What helped? What changed?"></textarea>
+        </label>
+        <button class="primary-action" type="submit">Log It</button>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -24,10 +24,46 @@
           <p>You have 122 days. Choose what you're building. Every real-world action grows your world.</p>
         </div>
 
-        <div class="landing-actions">
-          <button class="primary-action" data-action="start-setup">Start My Arc</button>
-          <button class="secondary-action" data-action="resume-game">I'm Already Playing</button>
+        <div class="landing-actions local-actions">
+          <p class="eyebrow">Offline mode</p>
+          <button class="secondary-action" data-action="start-setup">Start Without Login</button>
+          <button class="secondary-action" data-action="resume-game">Continue This Device</button>
         </div>
+
+        <section class="auth-panel" aria-labelledby="auth-title">
+          <div>
+            <p class="eyebrow">Cloud save</p>
+            <h2 id="auth-title">Login sync</h2>
+            <p id="auth-status" class="muted">Local save active.</p>
+          </div>
+          <form id="auth-form" class="auth-form">
+            <div id="auth-login-fields" class="auth-login-fields">
+              <label>
+                Email
+                <input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com">
+              </label>
+              <label>
+                Password
+                <input id="auth-password" type="password" autocomplete="current-password" placeholder="8+ characters">
+              </label>
+              <div class="auth-actions">
+                <button type="button" class="primary-action" data-action="cloud-sign-in">Sign In</button>
+                <button type="button" class="secondary-action" data-action="cloud-sign-up">Create Login</button>
+              </div>
+            </div>
+            <div id="cloud-session-panel" class="cloud-session-panel hidden">
+              <p>Cloud session active. Create your Kaapisoda profile or sync the current local save.</p>
+              <div class="auth-actions">
+                <button type="button" class="primary-action" data-action="start-setup">Build Profile</button>
+                <button type="button" class="secondary-action" data-action="cloud-sync">Sync Now</button>
+                <button type="button" class="secondary-action" data-action="cloud-sign-out">Sign Out</button>
+              </div>
+            </div>
+          </form>
+          <div id="cloud-disabled-note" class="cloud-disabled-note">
+            <p>Cloud login is not connected yet. Local play works now; account creation unlocks after Supabase keys are added.</p>
+          </div>
+        </section>
       </section>
 
       <section id="setup-screen" class="screen setup-screen" aria-labelledby="setup-title">
@@ -152,6 +188,9 @@
           <div class="player-switcher">
             <label for="profile-select">Profile</label>
             <select id="profile-select"></select>
+            <p id="game-auth-status" class="sync-status">Local save</p>
+            <button type="button" class="mini-action profile-button" data-action="open-profile">Profile</button>
+            <button type="button" class="mini-action cloud-login-button" data-action="show-cloud-login">Cloud Login</button>
           </div>
         </header>
 
@@ -251,8 +290,22 @@
                 <p class="eyebrow">Duo</p>
                 <h3>Separate kingdoms. Same momentum.</h3>
               </div>
-              <button class="secondary-action" data-action="send-encouragement">Send Encouragement</button>
+              <button class="secondary-action" data-action="refresh-duo">Refresh Duo</button>
             </div>
+            <section id="duo-cloud-panel" class="duo-cloud-panel">
+              <div>
+                <p class="eyebrow">Shared Space</p>
+                <h3 id="duo-space-title">Link with a friend.</h3>
+                <p id="duo-space-status" class="muted">Create a Duo code or join one your friend shares.</p>
+              </div>
+              <div class="duo-code-actions">
+                <button type="button" class="primary-action" data-action="create-duo">Create Duo Code</button>
+                <div class="inline-control">
+                  <input id="duo-code-input" type="text" inputmode="text" autocomplete="off" maxlength="8" placeholder="ENTER CODE">
+                  <button type="button" class="secondary-action" data-action="join-duo">Join</button>
+                </div>
+              </div>
+            </section>
             <div id="duo-grid" class="duo-grid"></div>
             <div id="duo-challenge" class="challenge-card"></div>
           </section>
@@ -266,17 +319,21 @@
             </div>
             <div class="bank-grid">
               <article class="bank-card">
-                <p class="eyebrow">Reward Points</p>
-                <strong id="reward-points">0</strong>
-                <p class="muted">Earned from level ups, milestones, and weekly wins.</p>
+                <p class="eyebrow">Reward Bank</p>
+                <strong id="reward-bank">₹0</strong>
+                <p class="muted">Manual reward money your Duo can pay you when you stay consistent and deserve a treat.</p>
+                <div class="inline-control">
+                  <input id="reward-bank-amount" type="number" min="1" step="1" placeholder="100">
+                  <button class="secondary-action" data-action="add-reward-bank">Add</button>
+                </div>
               </article>
               <article class="bank-card">
-                <p class="eyebrow">Piggy Bank</p>
-                <strong id="piggy-bank">0</strong>
-                <p class="muted">Manual accountability only. Rest days and emergencies are not failures.</p>
+                <p class="eyebrow">Penalty Bank</p>
+                <strong id="penalty-bank">₹0</strong>
+                <p class="muted">Manual penalty money you add when you were not consistent and owe your Duo accountability.</p>
                 <div class="inline-control">
-                  <input id="piggy-amount" type="number" min="1" step="1" placeholder="20">
-                  <button class="secondary-action" data-action="add-piggy">Add</button>
+                  <input id="penalty-bank-amount" type="number" min="1" step="1" placeholder="50">
+                  <button class="secondary-action" data-action="add-penalty-bank">Add</button>
                 </div>
               </article>
             </div>
@@ -340,6 +397,120 @@
       </div>
     </dialog>
 
-    <script src="app.js"></script>
+    <dialog id="profile-dialog" class="modal profile-modal">
+      <form id="profile-form" method="dialog">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">Profile</p>
+            <h3>Edit your arc.</h3>
+          </div>
+          <button type="button" class="icon-button" data-action="close-profile" aria-label="Close">x</button>
+        </div>
+
+        <div class="profile-grid">
+          <label>
+            Name
+            <input id="profile-name" type="text" required>
+          </label>
+          <label>
+            Pronouns <span class="optional">optional</span>
+            <input id="profile-pronouns" type="text">
+          </label>
+          <label>
+            Kingdom name
+            <input id="profile-kingdom" type="text" required>
+          </label>
+        </div>
+
+        <fieldset>
+          <legend>Avatar</legend>
+          <div id="profile-avatar-picker" class="avatar-grid" role="radiogroup" aria-label="Choose profile avatar"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Life areas</legend>
+          <div id="profile-category-picker" class="chip-grid"></div>
+          <div class="inline-control">
+            <input id="profile-custom-category" type="text" placeholder="Add a new area">
+            <button type="button" class="icon-text-button" data-action="add-profile-category">Add</button>
+          </div>
+        </fieldset>
+
+        <section class="profile-add-goal" aria-labelledby="profile-add-goal-title">
+          <h3 id="profile-add-goal-title" class="compact-title">Add another goal</h3>
+          <div class="goal-form-grid">
+            <label>
+              Goal name
+              <input id="profile-goal-name" type="text" placeholder="Name something you want to build">
+            </label>
+            <label>
+              Category
+              <select id="profile-goal-category"></select>
+            </label>
+            <label>
+              Type
+              <select id="profile-goal-type">
+                <option>Numeric</option>
+                <option>Habit</option>
+                <option>Project</option>
+                <option>Milestone</option>
+                <option>Skill</option>
+                <option>Custom</option>
+              </select>
+            </label>
+            <label>
+              <span class="label-with-help">
+                Starting value
+                <button type="button" class="help-button" aria-label="What starting value means">i
+                  <span class="help-tooltip" role="tooltip">Where this goal begins. Use it only when progress can be counted, like pages, sessions, money, or completed units.</span>
+                </button>
+              </span>
+              <input id="profile-goal-start" type="number" min="0" step="1" placeholder="0">
+            </label>
+            <label>
+              <span class="label-with-help">
+                Target value
+                <button type="button" class="help-button" aria-label="What target value means">i
+                  <span class="help-tooltip" role="tooltip">The number you want to reach. Kaapisoda uses this to show percentage progress. Leave it empty for open-ended goals.</span>
+                </button>
+              </span>
+              <input id="profile-goal-target" type="number" min="0" step="1" placeholder="Optional">
+            </label>
+            <label>
+              Deadline
+              <input id="profile-goal-deadline" type="date" value="2026-12-31">
+            </label>
+          </div>
+          <label>
+            Why does this matter? <span class="optional">optional</span>
+            <textarea id="profile-goal-why" rows="2" placeholder="Optional reflection"></textarea>
+          </label>
+          <label>
+            Milestones <span class="optional">optional, one per line</span>
+            <textarea id="profile-goal-milestones" rows="3" placeholder="Add checkpoints, one per line"></textarea>
+          </label>
+          <button type="button" class="secondary-action" data-action="add-profile-goal">Add Goal</button>
+        </section>
+
+        <section class="profile-goals" aria-labelledby="profile-goals-title">
+          <h3 id="profile-goals-title" class="compact-title">Current goals</h3>
+          <div id="profile-goals-list" class="compact-list"></div>
+        </section>
+
+        <section class="danger-zone profile-danger">
+          <div>
+            <p class="eyebrow">Danger Zone</p>
+            <h3 class="compact-title">Delete this profile</h3>
+            <p class="muted">Removes this profile, goals, journal, bank, quests, and map progress from this save.</p>
+          </div>
+          <button type="button" class="secondary-action danger-action" data-action="delete-profile">Delete Profile</button>
+        </section>
+
+        <button class="primary-action" type="submit">Save Profile</button>
+      </form>
+    </dialog>
+
+    <script type="module" src="config.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

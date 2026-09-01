@@ -319,17 +319,21 @@
             </div>
             <div class="bank-grid">
               <article class="bank-card">
-                <p class="eyebrow">Reward Points</p>
-                <strong id="reward-points">0</strong>
-                <p class="muted">Earned from level ups, milestones, and weekly wins.</p>
+                <p class="eyebrow">Reward Bank</p>
+                <strong id="reward-bank">₹0</strong>
+                <p class="muted">Manual reward money your Duo can pay you when you stay consistent and deserve a treat.</p>
+                <div class="inline-control">
+                  <input id="reward-bank-amount" type="number" min="1" step="1" placeholder="100">
+                  <button class="secondary-action" data-action="add-reward-bank">Add</button>
+                </div>
               </article>
               <article class="bank-card">
-                <p class="eyebrow">Piggy Bank</p>
-                <strong id="piggy-bank">0</strong>
-                <p class="muted">Manual accountability only. Rest days and emergencies are not failures.</p>
+                <p class="eyebrow">Penalty Bank</p>
+                <strong id="penalty-bank">₹0</strong>
+                <p class="muted">Manual penalty money you add when you were not consistent and owe your Duo accountability.</p>
                 <div class="inline-control">
-                  <input id="piggy-amount" type="number" min="1" step="1" placeholder="20">
-                  <button class="secondary-action" data-action="add-piggy">Add</button>
+                  <input id="penalty-bank-amount" type="number" min="1" step="1" placeholder="50">
+                  <button class="secondary-action" data-action="add-penalty-bank">Add</button>
                 </div>
               </article>
             </div>
@@ -491,6 +495,15 @@
         <section class="profile-goals" aria-labelledby="profile-goals-title">
           <h3 id="profile-goals-title" class="compact-title">Current goals</h3>
           <div id="profile-goals-list" class="compact-list"></div>
+        </section>
+
+        <section class="danger-zone profile-danger">
+          <div>
+            <p class="eyebrow">Danger Zone</p>
+            <h3 class="compact-title">Delete this profile</h3>
+            <p class="muted">Removes this profile, goals, journal, bank, quests, and map progress from this save.</p>
+          </div>
+          <button type="button" class="secondary-action danger-action" data-action="delete-profile">Delete Profile</button>
         </section>
 
         <button class="primary-action" type="submit">Save Profile</button>

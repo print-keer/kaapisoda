@@ -658,8 +658,10 @@ function handleClick(event) {
     "refresh-quests": refreshQuests,
     "save-big3": saveBig3,
     "send-encouragement": sendEncouragement,
-    "add-piggy": addPiggy,
+    "add-reward-bank": addRewardBank,
+    "add-penalty-bank": addPenaltyBank,
     "reset-save": resetSave,
+    "delete-profile": deleteCurrentProfile,
     "close-result": closeResult,
     "open-profile": openProfile,
     "close-profile": closeProfile,
@@ -935,6 +937,8 @@ function finishSetup(event) {
     dailyQuests: createDailyQuests(setupDraft.goals),
     big3: ["", "", ""],
     weeklyGoals: createWeeklyGoals(setupDraft.goals),
+    rewardBank: 0,
+    penaltyBank: 0,
     piggyBank: 0,
     rewardPoints: 0
   };
@@ -978,7 +982,9 @@ function ensureUserShape(user) {
   user.dailyQuests ||= createDailyQuests(user.goals);
   user.weeklyGoals ||= createWeeklyGoals(user.goals);
   user.big3 ||= ["", "", ""];
-  user.piggyBank ||= 0;
+  user.rewardBank = Number(user.rewardBank || 0);
+  user.penaltyBank = Number(user.penaltyBank || user.piggyBank || 0);
+  user.piggyBank = Number(user.piggyBank || 0);
   user.rewardPoints ||= 0;
   user.categories = getUserCategories(user);
 }
@@ -1494,8 +1500,8 @@ function renderDuoSummaryCard(summary) {
 }
 
 function renderBank(user) {
-  $("#reward-points").textContent = user.rewardPoints;
-  $("#piggy-bank").textContent = `₹${user.piggyBank}`;
+  $("#reward-bank").textContent = `₹${user.rewardBank || 0}`;
+  $("#penalty-bank").textContent = `₹${user.penaltyBank || 0}`;
 }
 
 function openLog(goalId = "") {
@@ -1688,15 +1694,26 @@ function sendEncouragement() {
   showToast(message);
 }
 
-function addPiggy() {
+function addRewardBank() {
   const user = currentUser();
-  const amount = Math.max(0, Number($("#piggy-amount").value || 0));
+  const amount = Math.max(0, Number($("#reward-bank-amount").value || 0));
   if (!amount) return;
-  user.piggyBank += amount;
-  $("#piggy-amount").value = "";
+  user.rewardBank = Number(user.rewardBank || 0) + amount;
+  $("#reward-bank-amount").value = "";
   saveState();
   renderApp();
-  showToast("Accountability noted gently.");
+  showToast("Reward added.");
+}
+
+function addPenaltyBank() {
+  const user = currentUser();
+  const amount = Math.max(0, Number($("#penalty-bank-amount").value || 0));
+  if (!amount) return;
+  user.penaltyBank = Number(user.penaltyBank || 0) + amount;
+  $("#penalty-bank-amount").value = "";
+  saveState();
+  renderApp();
+  showToast("Penalty added.");
 }
 
 function updateGoalValue(goalId) {
@@ -1818,6 +1835,31 @@ function resetSave() {
   showScreen("landing");
   renderPickers();
   showToast("Local save reset.");
+}
+
+function deleteCurrentProfile() {
+  const user = currentUser();
+  if (!user) return;
+  const confirmed = window.confirm(`Delete "${user.name}" and all progress in this profile?`);
+  if (!confirmed) return;
+
+  state.users = state.users.filter((item) => item.id !== user.id);
+  state.currentUserId = state.users[0]?.id || null;
+  profileDraft = null;
+  if ($("#profile-dialog")?.open) $("#profile-dialog").close();
+  saveState();
+
+  if (state.users.length) {
+    showScreen("game");
+    renderApp();
+  } else {
+    setupDraft = createSetupDraft();
+    setupPage = 0;
+    renderPickers();
+    showScreen("landing");
+  }
+
+  showToast("Profile deleted.");
 }
 
 function getBuildingsForUser(user) {

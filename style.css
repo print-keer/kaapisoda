@@ -995,6 +995,22 @@ h3 {
   background: rgba(255, 255, 255, 0.5);
 }
 
+.bank-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bank-card:nth-child(1) {
+  background:
+    repeating-linear-gradient(90deg, rgba(185, 242, 58, 0.12) 0 8px, transparent 8px 16px),
+    var(--pixel-panel-2);
+}
+
+.bank-card:nth-child(2) {
+  background:
+    repeating-linear-gradient(45deg, rgba(236, 107, 93, 0.11) 0 8px, transparent 8px 16px),
+    var(--pixel-panel-2);
+}
+
 .challenge-card {
   margin-top: 1rem;
   padding: 1rem;
@@ -1004,6 +1020,10 @@ h3 {
   display: block;
   font-size: 2.4rem;
   color: var(--ink);
+}
+
+.profile-danger {
+  margin-top: 0;
 }
 
 .modal {

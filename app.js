@@ -1,5 +1,8 @@
 const STORAGE_KEY = "kaapisoda_state_v1";
 const CLOUD_TABLE = "kaapisoda_profiles";
+const DUO_TABLE = "kaapisoda_duos";
+const DUO_MEMBERS_TABLE = "kaapisoda_duo_members";
+const DUO_SUMMARIES_TABLE = "kaapisoda_duo_summaries";
 const CLOUD_SAVE_DELAY = 900;
 
 const avatars = [
@@ -118,6 +121,11 @@ let cloudHydrating = false;
 let cloudSaveTimer = null;
 let lastCloudSavedPayload = "";
 let profileDraft = null;
+let duoSpace = {
+  loading: false,
+  duo: null,
+  summaries: []
+};
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -199,6 +207,7 @@ async function initCloud() {
   });
 
   await hydrateFromCloud();
+  await loadDuoSpace();
   renderCloudUi();
 }
 
@@ -259,8 +268,10 @@ async function signOutOfCloud() {
   if (!cloudReady) return;
   await cloudClient.auth.signOut();
   cloudUser = null;
+  duoSpace = { loading: false, duo: null, summaries: [] };
   setCloudStatus("Signed out. Local save active.", "local");
   renderCloudUi();
+  renderDuo();
 }
 
 async function hydrateFromCloud() {
@@ -292,12 +303,14 @@ async function hydrateFromCloud() {
     saveState({ skipCloud: true });
     setCloudStatus("Signed in. Create your Kaapisoda profile.", "online");
     cloudHydrating = false;
+    await loadDuoSpace();
     startSetup();
     return;
   }
 
   lastCloudSavedPayload = JSON.stringify(state);
   cloudHydrating = false;
+  await loadDuoSpace();
   if (state.users.length) {
     showScreen("game");
     renderApp();
@@ -332,8 +345,10 @@ async function saveCloudStateNow() {
     return;
   }
 
+  await saveDuoSummary();
   lastCloudSavedPayload = payload;
   setCloudStatus("Cloud save synced.", "online");
+  await loadDuoSpace();
 }
 
 async function syncCloudNow() {
@@ -343,6 +358,231 @@ async function syncCloudNow() {
   }
   await saveCloudStateNow();
   showToast("Cloud sync complete.");
+}
+
+async function createDuoSpace() {
+  if (!requireCloudForDuo()) return;
+  await saveDuoSummary();
+  setDuoStatus("Creating Duo code...", "syncing");
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const code = createDuoCode();
+    const { data, error } = await cloudClient
+      .from(DUO_TABLE)
+      .insert({ code, created_by: cloudUser.id })
+      .select("id, code, created_at")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") continue;
+      const message = formatDuoError(error);
+      setDuoStatus(message, "error");
+      showToast(message);
+      return;
+    }
+
+    const joined = await joinDuoById(data.id);
+    if (!joined) return;
+    duoSpace.duo = data;
+    await loadDuoSpace();
+    showToast(`Duo code: ${code}`);
+    return;
+  }
+
+  setDuoStatus("Could not create a unique Duo code. Try again.", "error");
+}
+
+async function joinDuoSpace() {
+  if (!requireCloudForDuo()) return;
+  const code = $("#duo-code-input").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!code) {
+    showToast("Enter your friend's Duo code.");
+    return;
+  }
+
+  await saveDuoSummary();
+  setDuoStatus("Joining Duo space...", "syncing");
+  const { data, error } = await cloudClient
+    .from(DUO_TABLE)
+    .select("id, code, created_at")
+    .eq("code", code)
+    .maybeSingle();
+
+  if (error) {
+    const message = formatDuoError(error);
+    setDuoStatus(message, "error");
+    showToast(message);
+    return;
+  }
+
+  if (!data) {
+    setDuoStatus("No Duo space found for that code.", "error");
+    showToast("Duo code not found.");
+    return;
+  }
+
+  const joined = await joinDuoById(data.id);
+  if (!joined) return;
+  $("#duo-code-input").value = "";
+  duoSpace.duo = data;
+  await loadDuoSpace();
+  showToast("Joined Duo space.");
+}
+
+async function joinDuoById(duoId) {
+  const { error } = await cloudClient
+    .from(DUO_MEMBERS_TABLE)
+    .upsert({ duo_id: duoId, user_id: cloudUser.id }, { onConflict: "duo_id,user_id" });
+
+  if (error) {
+    const message = formatDuoError(error);
+    setDuoStatus(message, "error");
+    showToast(message);
+    return false;
+  }
+
+  return true;
+}
+
+async function refreshDuoSpace() {
+  if (!cloudReady || !cloudUser) {
+    showToast("Sign in to use Duo.");
+    renderDuo();
+    return;
+  }
+
+  await saveDuoSummary();
+  await loadDuoSpace();
+  showToast(duoSpace.duo ? "Duo refreshed." : "Create or join a Duo first.");
+}
+
+async function loadDuoSpace() {
+  if (!cloudReady || !cloudUser) {
+    duoSpace = { loading: false, duo: null, summaries: [] };
+    return;
+  }
+
+  duoSpace.loading = true;
+  renderDuo();
+
+  const { data: memberships, error: membershipError } = await cloudClient
+    .from(DUO_MEMBERS_TABLE)
+    .select("duo_id")
+    .eq("user_id", cloudUser.id)
+    .limit(1);
+
+  if (membershipError) {
+    duoSpace = { loading: false, duo: null, summaries: [] };
+    setDuoStatus(formatDuoError(membershipError), "error");
+    return;
+  }
+
+  const membership = memberships?.[0];
+  if (!membership) {
+    duoSpace = { loading: false, duo: null, summaries: [] };
+    renderDuo();
+    return;
+  }
+
+  const { data: duo, error: duoError } = await cloudClient
+    .from(DUO_TABLE)
+    .select("id, code, created_at")
+    .eq("id", membership.duo_id)
+    .single();
+
+  if (duoError) {
+    duoSpace = { loading: false, duo: null, summaries: [] };
+    setDuoStatus(formatDuoError(duoError), "error");
+    return;
+  }
+
+  const { data: allMembers, error: membersError } = await cloudClient
+    .from(DUO_MEMBERS_TABLE)
+    .select("user_id")
+    .eq("duo_id", membership.duo_id);
+
+  if (membersError) {
+    duoSpace = { loading: false, duo, summaries: [] };
+    setDuoStatus(formatDuoError(membersError), "error");
+    return;
+  }
+
+  const memberIds = [...new Set((allMembers || []).map((member) => member.user_id))];
+  const { data: summaries, error: summaryError } = await cloudClient
+    .from(DUO_SUMMARIES_TABLE)
+    .select("user_id, display_name, pronouns, avatar, kingdom_name, xp, level, streak, best_streak, building_count, last_action_at, updated_at")
+    .in("user_id", memberIds);
+
+  if (summaryError) {
+    duoSpace = { loading: false, duo, summaries: [] };
+    setDuoStatus(formatDuoError(summaryError), "error");
+    return;
+  }
+
+  duoSpace = {
+    loading: false,
+    duo,
+    summaries: summaries || []
+  };
+  renderDuo();
+}
+
+async function saveDuoSummary() {
+  if (!cloudReady || !cloudUser) return;
+  const user = currentUser();
+  if (!user) return;
+  ensureUserShape(user);
+  const latestTask = [...user.tasks].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+  await cloudClient
+    .from(DUO_SUMMARIES_TABLE)
+    .upsert({
+      user_id: cloudUser.id,
+      display_name: user.name,
+      pronouns: user.pronouns || null,
+      avatar: normalizeAvatar(user.avatar),
+      kingdom_name: user.kingdomName,
+      xp: user.xp || 0,
+      level: calculateLevel(user.xp || 0).level,
+      streak: user.streak || 0,
+      best_streak: user.bestStreak || 0,
+      building_count: getUnlockedBuildings(user).length,
+      last_action_at: latestTask?.timestamp || null,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "user_id" });
+}
+
+function requireCloudForDuo() {
+  if (!cloudReady || !cloudUser) {
+    showToast("Sign in before using Duo.");
+    showCloudLogin();
+    return false;
+  }
+  if (!currentUser()) {
+    showToast("Create your profile first.");
+    startSetup();
+    return false;
+  }
+  return true;
+}
+
+function createDuoCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+}
+
+function setDuoStatus(message, mode = "local") {
+  const status = $("#duo-space-status");
+  if (!status) return;
+  status.textContent = message;
+  status.dataset.mode = mode;
+}
+
+function formatDuoError(error) {
+  if (error?.code === "42P01" || /does not exist|schema cache/i.test(error?.message || "")) {
+    return "Duo tables are not set up in Supabase yet. Run the Duo SQL in SUPABASE_SETUP.md.";
+  }
+  return error?.message || "Duo sync had a problem.";
 }
 
 function renderCloudUi() {
@@ -429,7 +669,10 @@ function handleClick(event) {
     "cloud-sign-up": () => signInToCloud(true),
     "cloud-sign-out": signOutOfCloud,
     "cloud-sync": syncCloudNow,
-    "show-cloud-login": showCloudLogin
+    "show-cloud-login": showCloudLogin,
+    "create-duo": createDuoSpace,
+    "join-duo": joinDuoSpace,
+    "refresh-duo": refreshDuoSpace
   };
 
   if (actions[action]) actions[action]();
@@ -1182,20 +1425,71 @@ function renderQuests(user) {
 }
 
 function renderDuo() {
-  $("#duo-grid").innerHTML = state.users.map((user) => `
-    <article class="duo-card">
-      <div class="duo-title">${renderPixelAvatar(user.avatar)}<p class="entry-title">${escapeHtml(user.name)}</p></div>
-      <p class="meta-line">${escapeHtml(user.kingdomName)}</p>
-      <p>Level ${calculateLevel(user.xp).level} · ${user.xp} XP · ${user.streak} streak</p>
-      <p class="muted">${getUnlockedBuildings(user).length} buildings unlocked</p>
-    </article>
-  `).join("");
+  const title = $("#duo-space-title");
+  const panel = $("#duo-cloud-panel");
+  const codeActions = $(".duo-code-actions");
+  const signedIn = Boolean(cloudReady && cloudUser);
+  panel?.classList.toggle("is-offline", !signedIn);
+  codeActions?.classList.toggle("hidden", signedIn && Boolean(duoSpace.duo));
 
-  const complete = state.users.length >= 2 && state.users.every((user) => user.tasks.length >= 3);
+  if (!signedIn) {
+    title.textContent = "Sign in to link with a friend.";
+    setDuoStatus("Duo needs cloud login so both phones can see the same space.", "local");
+  } else if (duoSpace.loading) {
+    title.textContent = "Loading Duo space.";
+    setDuoStatus("Checking shared progress...", "syncing");
+  } else if (duoSpace.duo) {
+    title.textContent = `Duo code ${duoSpace.duo.code}`;
+    setDuoStatus("Share this code with your friend. Anyone in this Duo can see the progress cards below.", "online");
+  } else {
+    title.textContent = "Link with a friend.";
+    setDuoStatus("Create a Duo code or join one your friend shares.", "local");
+  }
+
+  const summaries = duoSpace.duo ? duoSpace.summaries : [];
+  $("#duo-grid").innerHTML = summaries.length
+    ? summaries.map(renderDuoSummaryCard).join("")
+    : state.users.map((user) => `
+      <article class="duo-card">
+        <div class="duo-title">${renderPixelAvatar(user.avatar)}<p class="entry-title">${escapeHtml(user.name)}</p></div>
+        <p class="meta-line">${escapeHtml(user.kingdomName)}</p>
+        <p>Level ${calculateLevel(user.xp).level} · ${user.xp} XP · ${user.streak} streak</p>
+        <p class="muted">${signedIn ? "Create or join a Duo code to see your friend here." : "Local preview only. Sign in to share progress."}</p>
+      </article>
+    `).join("");
+
+  const complete = summaries.length >= 2
+    ? summaries.every((summary) => Number(summary.streak || 0) > 0)
+    : state.users.length >= 2 && state.users.every((user) => user.tasks.length >= 3);
   $("#duo-challenge").innerHTML = `
     <p class="eyebrow">Duo Challenge</p>
-    <h3>Both complete 3 meaningful actions.</h3>
-    <p class="muted">${complete ? "Duo quest complete. Both kingdoms have momentum." : "Create two profiles and log three actions each."}</p>
+    <h3>Both show up today.</h3>
+    <p class="muted">${complete ? "Duo quest complete. Both kingdoms have momentum." : duoSpace.duo ? "Log progress on both accounts to light this up." : "Create or join a Duo space to track each other."}</p>
+  `;
+}
+
+function renderDuoSummaryCard(summary) {
+  const isYou = summary.user_id === cloudUser?.id;
+  const updated = summary.updated_at ? formatDateTime(summary.updated_at) : "Not synced yet";
+  const lastAction = summary.last_action_at ? formatDateTime(summary.last_action_at) : "No action logged yet";
+  return `
+    <article class="duo-card ${isYou ? "is-you" : ""}">
+      <div class="duo-title">
+        ${renderPixelAvatar(summary.avatar)}
+        <div>
+          <p class="entry-title">${escapeHtml(summary.display_name || "Player")}${isYou ? " · You" : ""}</p>
+          <p class="meta-line">${escapeHtml(summary.kingdom_name || "Kaapisoda")}</p>
+        </div>
+      </div>
+      <div class="duo-stat-grid">
+        <span><strong>${Number(summary.level || 1)}</strong> level</span>
+        <span><strong>${Number(summary.xp || 0)}</strong> XP</span>
+        <span><strong>${Number(summary.streak || 0)}</strong> streak</span>
+        <span><strong>${Number(summary.building_count || 0)}</strong> areas</span>
+      </div>
+      <p class="muted">Last action: ${escapeHtml(lastAction)}</p>
+      <p class="meta-line">Synced ${escapeHtml(updated)}</p>
+    </article>
   `;
 }
 

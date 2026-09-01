@@ -871,6 +871,68 @@ h3 {
   margin-top: 1rem;
 }
 
+.duo-cloud-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.9fr);
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: var(--pixel-unit) solid var(--pixel-ink);
+  color: var(--pixel-ink);
+  background:
+    repeating-linear-gradient(90deg, rgba(16, 23, 15, 0.05) 0 8px, transparent 8px 16px),
+    var(--pixel-panel-2);
+  box-shadow: var(--pixel-unit) var(--pixel-unit) 0 rgba(16, 23, 15, 0.35);
+}
+
+.duo-cloud-panel h3,
+.duo-cloud-panel p {
+  color: var(--pixel-ink);
+}
+
+.duo-cloud-panel .muted {
+  color: var(--pixel-dim);
+}
+
+.duo-code-actions {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.duo-code-actions input {
+  text-transform: uppercase;
+}
+
+.duo-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0.8rem 0;
+}
+
+.duo-stat-grid span {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem;
+  border: var(--pixel-unit) solid var(--pixel-dim);
+  color: var(--pixel-ink);
+  background: rgba(231, 242, 180, 0.45);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.duo-stat-grid strong {
+  color: var(--pixel-bg);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.duo-card.is-you {
+  border-color: var(--pixel-accent);
+  box-shadow: 6px 6px 0 rgba(185, 242, 58, 0.32);
+}
+
 .quest-card.is-done {
   background: rgba(73, 107, 79, 0.18);
 }
@@ -2199,6 +2261,10 @@ legend,
   }
 
   .quest-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .duo-cloud-panel {
     grid-template-columns: 1fr;
   }
 

@@ -290,8 +290,22 @@
                 <p class="eyebrow">Duo</p>
                 <h3>Separate kingdoms. Same momentum.</h3>
               </div>
-              <button class="secondary-action" data-action="send-encouragement">Send Encouragement</button>
+              <button class="secondary-action" data-action="refresh-duo">Refresh Duo</button>
             </div>
+            <section id="duo-cloud-panel" class="duo-cloud-panel">
+              <div>
+                <p class="eyebrow">Shared Space</p>
+                <h3 id="duo-space-title">Link with a friend.</h3>
+                <p id="duo-space-status" class="muted">Create a Duo code or join one your friend shares.</p>
+              </div>
+              <div class="duo-code-actions">
+                <button type="button" class="primary-action" data-action="create-duo">Create Duo Code</button>
+                <div class="inline-control">
+                  <input id="duo-code-input" type="text" inputmode="text" autocomplete="off" maxlength="8" placeholder="ENTER CODE">
+                  <button type="button" class="secondary-action" data-action="join-duo">Join</button>
+                </div>
+              </div>
+            </section>
             <div id="duo-grid" class="duo-grid"></div>
             <div id="duo-challenge" class="challenge-card"></div>
           </section>

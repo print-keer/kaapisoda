@@ -10,7 +10,7 @@ await writeFile(
     if (response.status !== 404) return response;
 
     const url = new URL(request.url);
-    const fallback = new Request(new URL("/", url.origin), request);
+    const fallback = new Request(new URL("/index.html", url.origin), request);
     return env.ASSETS.fetch(fallback);
   }
 };

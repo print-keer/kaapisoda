@@ -1,12 +1,33 @@
 {
+  "name": "kaapisoda",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "type": "module",
   "scripts": {
-    "build": "vite build && node scripts/build-sites-worker.mjs",
-    "dev": "vite --host 0.0.0.0"
+    "build": "node scripts/prepare-static-assets.mjs && vinext build",
+    "dev": "node scripts/prepare-static-assets.mjs && vinext dev",
+    "start": "wrangler dev --config dist/server/wrangler.json"
   },
   "dependencies": {
-    "@openai/sites-vite-plugin": "^0.1.0",
-    "vite": "^8.0.0"
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-server-dom-webpack": "19.2.6",
+    "vinext": "1.0.0-beta.5"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.37.1",
+    "@cloudflare/workers-types": "4.20260515.1",
+    "@openai/sites-vite-plugin": "0.2.0",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "typescript": "5.9.3",
+    "vite": "8.0.13",
+    "wrangler": "4.92.0"
+  }
 }
